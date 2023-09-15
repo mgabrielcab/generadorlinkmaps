@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Tabla y Enlaces de Google Maps desde Excel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Generar Tabla y Enlaces de Google Maps desde Excel</h1>
+    
+    <input type="file" id="excelFile" accept=".xlsx">
+    <button id="generateButton">Generar Tabla y Enlaces</button>
+    
+    <div id="searchContainer">
+        <label for="searchId">Buscar por ID:</label>
+        <input type="text" id="searchId">
+        <button id="searchButton">Buscar</button>
+    </div>
+    
+    <div id="tableContainer"></div>
+    
+    <script>
+        var jsonData; // Almacenar datos del archivo Excel
+
+        document.getElementById('generateButton').addEventListener('click', function () {
+            var fileInput = document.getElementById('excelFile');
+            var file = fileInput.files[0];
+            
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var data = new Uint8Array(e.target.result);
+                    var workbook = XLSX.read(data, { type: 'array' });
+                    var worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    displayTable(jsonData);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        document.getElementById('searchButton').addEventListener('click', function () {
+            var searchId = document.getElementById('searchId').value;
+            var searchResult = jsonData.filter(function (client) {
+                return client['ID (código del cliente)'] == searchId;
+            });
+
+            displayTable(searchResult);
+        });
+
+        function displayTable(data) {
+            var tableContainer = document.getElementById('tableContainer');
+            tableContainer.innerHTML = ''; // Limpiar resultados anteriores
+
+            // Crear una tabla HTML
+            var table = document.createElement('table');
+            table.border = 1;
+
+            // Crear la fila de encabezado
+            var headerRow = table.insertRow(0);
+            headerRow.insertCell(0).textContent = 'ID';
+            headerRow.insertCell(1).textContent = 'Nombre';
+            headerRow.insertCell(2).textContent = 'Enlace Google Maps';
+
+            data.forEach(function (client) {
+                var id = client['ID (código del cliente)'];
+                var nombre = client.Nombre;
+                var lat = client.Latitud;
+                var lng = client.Longitud;
+
+                var googleMapsLink = 'https://maps.google.com/?q=' + lat + ',' + lng;
+
+                // Agregar fila a la tabla
+                var row = table.insertRow(-1);
+                row.insertCell(0).textContent = id;
+                row.insertCell(1).textContent = nombre;
+
+                // Crear un enlace para abrir la ubicación en Google Maps
+                var mapLinkCell = row.insertCell(2);
+                var mapLink = document.createElement('a');
+                mapLink.href = googleMapsLink;
+                mapLink.textContent = 'Abrir en Google Maps';
+                mapLink.target = '_blank';
+                mapLinkCell.appendChild(mapLink);
+            });
+
+            // Agregar la tabla al contenedor
+            tableContainer.appendChild(table);
+        }
+    </script>
+</body>
+</html>
